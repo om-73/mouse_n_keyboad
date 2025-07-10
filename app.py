@@ -46,7 +46,8 @@ def draw_keyboard(img):
 def get_finger_points(hand_landmarks):
     points = {}
     for id in [4, 8, 12, 16, 20]:
-        cx, cy = int(hand_landmarks.landmark[id].x * 1280), int(hand_landmarks.landmark[id].y * 720)
+        cx = int(hand_landmarks.landmark[id].x * 1280)
+        cy = int(hand_landmarks.landmark[id].y * 720)
         points[id] = (cx, cy)
     return points
 
@@ -73,7 +74,7 @@ def generate_frames():
 
         if results.multi_hand_landmarks:
             for handLms, handType in zip(results.multi_hand_landmarks, results.multi_handedness):
-                label = handType.classification[0].label
+                label = handType.classification[0].label  # "Left" or "Right"
                 points = get_finger_points(handLms)
 
                 # Draw fingertip circles and labels
@@ -88,23 +89,30 @@ def generate_frames():
                         pyautogui.click()
 
                 elif mode == 'keyboard' and label == 'Right':
-                    for x, y in points.values():
-                        for rect in keyboard_rects:
-                            rx, ry, rw, rh, key = rect
-                            if rx < x < rx + rw and ry < y < ry + rh:
-                                if key not in pressed:
-                                    pressed[key] = True
-                                    pyautogui.press(key.lower())
-                                    typed_text += key
-                                cv2.rectangle(frame, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), -1)
+                    index_finger = points[8]
+                    x, y = index_finger
+                    key_pressed = None
 
-                    # reset keys after press
-                    pressed.clear()
+                    for rect in keyboard_rects:
+                        rx, ry, rw, rh, key = rect
+                        if rx < x < rx + rw and ry < y < ry + rh:
+                            key_pressed = key
+                            cv2.rectangle(frame, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), -1)
+                            cv2.putText(frame, key, (rx + 20, ry + 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 0), 3)
+                            break
+
+                    if key_pressed:
+                        if key_pressed not in pressed:
+                            pressed[key_pressed] = True
+                            pyautogui.press(key_pressed.lower())
+                            typed_text += key_pressed
+                    else:
+                        pressed.clear()
 
                 mp_draw.draw_landmarks(frame, handLms, mp_hands.HAND_CONNECTIONS)
 
         # Draw typed text input field
-        cv2.rectangle(frame, (30, 20), (800, 80), (0, 0, 0), -1)
+        cv2.rectangle(frame, (30, 20), (900, 80), (0, 0, 0), -1)
         cv2.putText(frame, typed_text[-50:], (40, 65), cv2.FONT_HERSHEY_SIMPLEX, 1.8, (255, 255, 255), 3)
 
         _, buffer = cv2.imencode('.jpg', frame)
