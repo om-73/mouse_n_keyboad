@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gesture Control</title>
+</head>
+<body>
+    <h1>Gesture Controlled Mouse & Keyboard</h1>
+    <button onclick="switchMode('mouse')">Mouse Mode (m)</button>
+    <button onclick="switchMode('keyboard')">Keyboard Mode (k)</button>
+    <button onclick="quit()">Quit (q)</button>
+    <br><br>
+    <img src="{{ url_for('video') }}" width="1280" height="720">
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            const key = event.key.toLowerCase();
+            if (key === 'k') switchMode('keyboard');
+            else if (key === 'm') switchMode('mouse');
+            else if (key === 'q') quit();
+        });
+
+        function switchMode(mode) {
+            fetch('/switch/' + mode);
+        }
+
+        function quit() {
+            fetch('/quit');
+        }
+    </script>
+</body>
+</html>
