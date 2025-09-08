@@ -36,14 +36,11 @@ with app.app_context():
 # -------------------------
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
-    # Try an alternative backend on some systems (optional)
     cap.open(0)
 
-# Default fallback sizes if camera doesn’t report properly
 frame_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 640)
 frame_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 480)
 
-# Screen size for mapping
 screen_w, screen_h = pyautogui.size()
 
 # -------------------------
@@ -121,7 +118,6 @@ def press_key_safe(key):
         pyautogui.press(key.lower())
 
 def check_click(landmarks):
-    # Thumb (4) to Pinky (20) pinch -> click
     thumb = landmarks[4]
     pinky = landmarks[20]
     dist = ((thumb[0]-pinky[0])**2 + (thumb[1]-pinky[1])**2) ** 0.5
@@ -135,7 +131,6 @@ def generate_frames():
     while running:
         ok, frame = cap.read()
         if not ok:
-            # If camera hiccups, wait briefly and continue
             time.sleep(0.03)
             continue
 
@@ -148,53 +143,47 @@ def generate_frames():
 
         if results.multi_hand_landmarks:
             for handLms, handType in zip(results.multi_hand_landmarks, results.multi_handedness):
-                label = handType.classification[0].label  # 'Left' or 'Right'
+                label = handType.classification[0].label
                 points = get_finger_points(handLms)
 
-                # Visualize key fingertip points (optional)
                 for pid, (px, py) in points.items():
                     cv2.circle(frame, (px, py), 8, (0, 255, 255), -1)
 
                 if mode == "mouse" and label == "Left":
-                    # Move cursor with left-hand index finger
                     if 8 in points:
                         move_mouse_safe(points[8])
-                    # Click on pinch
                     if check_click(points):
                         with pyautogui_lock:
                             pyautogui.click()
-                        save_gesture(text="Click",x=points[8][0], y=points[8][1], mode="mouse")
+                        save_gesture(text="Click", x=points[8][0], y=points[8][1], mode="mouse")
 
                 elif mode == "keyboard" and label == "Right":
-                    # Right-hand index finger selects keys
-                    if 8 in points:
-                        x, y = points[8]
-                        key_pressed = None
-                        for rx, ry, rw, rh, key in keyboard_rects:
-                            if rx < x < rx+rw and ry < y < ry+rh:
-                                key_pressed = key
-                                # Highlight selected key
-                                cv2.rectangle(frame, (rx, ry), (rx+rw, ry+rh), (0,255,0), -1)
-                                cv2.putText(frame, key, (rx + rw//4, ry + int(rh*0.7)),
-                                            cv2.FONT_HERSHEY_SIMPLEX, max(rh/50, 0.8), (0,0,0), 2)
-                                break
-
-                        if key_pressed:
-                            now = time.time()
-                            if key_pressed not in last_press_time or now - last_press_time[key_pressed] > 0.3:
-                                last_press_time[key_pressed] = now
-                                press_key_safe(key_pressed)
-                                typed_text += key_pressed
-                                save_gesture(text=key_pressed, x=x, y=y, mode="keyboard")
+                    # --- MODIFIED: allow all five fingertips to press keys ---
+                    for fid in [4, 8, 12, 16, 20]:  # Thumb, Index, Middle, Ring, Pinky
+                        if fid in points:
+                            x, y = points[fid]
+                            key_pressed = None
+                            for rx, ry, rw, rh, key in keyboard_rects:
+                                if rx < x < rx + rw and ry < y < ry + rh:
+                                    key_pressed = key
+                                    cv2.rectangle(frame, (rx, ry), (rx + rw, ry + rh), (0, 255, 0), -1)
+                                    cv2.putText(frame, key, (rx + rw // 4, ry + int(rh * 0.7)),
+                                                cv2.FONT_HERSHEY_SIMPLEX, max(rh / 50, 0.8), (0, 0, 0), 2)
+                                    break
+                            if key_pressed:
+                                now = time.time()
+                                if key_pressed not in last_press_time or now - last_press_time[key_pressed] > 0.3:
+                                    last_press_time[key_pressed] = now
+                                    press_key_safe(key_pressed)
+                                    typed_text += key_pressed
+                                    save_gesture(text=key_pressed, x=x, y=y, mode="keyboard")
 
                 mp_draw.draw_landmarks(frame, handLms, mp_hands.HAND_CONNECTIONS)
 
-        # Typed text banner
         cv2.rectangle(frame, (30, 20), (900, 80), (0, 0, 0), -1)
         cv2.putText(frame, typed_text[-50:], (40, 65),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.8, (255, 255, 255), 3)
 
-        # MJPEG
         ok, buffer = cv2.imencode(".jpg", frame)
         if not ok:
             continue
@@ -274,5 +263,4 @@ def quit_app():
 # Run Flask app
 # -------------------------
 if __name__ == "__main__":
-    # Avoid double-run reloader (breaks camera) and enable threaded for streaming
     app.run(host="0.0.0.0", port=5050, debug=False, threaded=True, use_reloader=False)
