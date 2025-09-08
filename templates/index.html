@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Gesture Mouse & Keyboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Gesture Control</h1>
+    <nav>
+      <a href="{{ url_for('logs_page') }}" class="btn">View Logs</a>
+      <a href="{{ url_for('quit_app') }}" class="btn danger">Quit</a>
+    </nav>
+  </header>
+
+  <section class="controls">
+    <div class="mode">
+      <span>Current mode:</span>
+      <strong id="modeLabel">{{ mode }}</strong>
+    </div>
+    <div class="buttons">
+      <button class="btn" data-mode="mouse">Mouse Mode</button>
+      <button class="btn" data-mode="keyboard">Keyboard Mode</button>
+    </div>
+    <div class="hint">
+      <p><b>Mouse:</b> Move cursor with <i>Left</i> hand index; pinch thumb–pinky to click.</p>
+      <p><b>Keyboard:</b> Select keys with <i>Right</i> hand index finger.</p>
+    </div>
+  </section>
+
+  <section class="video">
+    <!-- MJPEG stream -->
+    <img id="videoStream" src="{{ url_for('video') }}" alt="video stream">
+  </section>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
