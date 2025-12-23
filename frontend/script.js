@@ -18,7 +18,12 @@ const saveUrlBtn = document.getElementById("saveUrlBtn");
 const statusSpan = document.getElementById("connectionStatus");
 
 // Configuration
-let API_BASE = localStorage.getItem("BACKEND_URL") || window.BACKEND_URL || "http://localhost:5050";
+// Configuration
+let defaultUrl = "http://localhost:5050";
+if (window.location.protocol === 'https:') {
+  defaultUrl = ""; // Force user input on production to avoid Mixed Content
+}
+let API_BASE = localStorage.getItem("BACKEND_URL") || window.BACKEND_URL || defaultUrl;
 backendInput.value = API_BASE;
 
 // Update API Base when user clicks Save

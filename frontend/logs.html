@@ -11,7 +11,12 @@
         // or we can just redefine it or load from a config file.
         // For simplicity, let's redefine or check local storage if we had it.
         // Ideally this should match index.html
-        window.BACKEND_URL = "http://localhost:5050"; 
+        // Configuration: Backend URL
+        let defaultUrl = "http://localhost:5050";
+        if (window.location.protocol === 'https:') {
+            defaultUrl = "";
+        }
+        window.BACKEND_URL = localStorage.getItem("BACKEND_URL") || defaultUrl; 
     </script>
 </head>
 
