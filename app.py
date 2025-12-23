@@ -1,12 +1,24 @@
 import os
 import cv2
-import mediapipe as mp
-import pyautogui
-from flask import Flask, render_template, Response, request, jsonify, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-import threading
 import time
+import threading
+import numpy as np
+from datetime import datetime
+from flask import Flask, render_template, Response, request, jsonify, redirect, url_for
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+
+# Try importing pyautogui, handling failure for headless servers
+try:
+    import pyautogui
+    # On Linux/Render headless, this might still import but fail on .size()
+    # verify connection to X server if possible or catch later
+    _screen_w, _screen_h = pyautogui.size()
+    HEADLESS = False
+except (ImportError, KeyError, Exception):
+    print("WARNING: PyAutoGUI not available (Headless mode). Mouse control disabled.")
+    pyautogui = None
+    HEADLESS = True
 
 # -------------------------
 # Flask app & DB setup
@@ -16,6 +28,8 @@ data_dir = os.path.join(basedir, "data")
 os.makedirs(data_dir, exist_ok=True)
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for Vercel frontend
+
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(data_dir, "gesture_data.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
@@ -34,25 +48,48 @@ with app.app_context():
 # -------------------------
 # Webcam & screen setup
 # -------------------------
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-    cap.open(0)
+# Attempt to open camera
+cap = None
+if not HEADLESS:
+    try:
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            cap = None
+    except Exception:
+        cap = None
 
-frame_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 640)
-frame_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 480)
+if cap:
+    frame_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 640)
+    frame_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 480)
+else:
+    frame_w, frame_h = 640, 480
 
-screen_w, screen_h = pyautogui.size()
+if not HEADLESS and pyautogui:
+    try:
+        screen_w, screen_h = pyautogui.size()
+    except Exception:
+        screen_w, screen_h = 1920, 1080
+        HEADLESS = True
+else:
+    screen_w, screen_h = 1920, 1080
 
 # -------------------------
 # Mediapipe hands
 # -------------------------
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    max_num_hands=2,
-    min_detection_confidence=0.7,
-    min_tracking_confidence=0.5
-)
-mp_draw = mp.solutions.drawing_utils
+try:
+    import mediapipe as mp
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(
+        max_num_hands=2,
+        min_detection_confidence=0.7,
+        min_tracking_confidence=0.5
+    )
+    mp_draw = mp.solutions.drawing_utils
+except Exception:
+    print("WARNING: Mediapipe not available or failed to init.")
+    hands = None
+    mp_draw = None
+
 
 # -------------------------
 # App state
@@ -76,10 +113,13 @@ pyautogui_lock = threading.Lock()
 def save_gesture(text=None, x=None, y=None, mode="mouse"):
     if not any([text, x, y]):
         return
-    with app.app_context():
-        log = GestureLog(text=text, x=x, y=y, mode=mode)
-        db.session.add(log)
-        db.session.commit()
+    try:
+        with app.app_context():
+            log = GestureLog(text=text, x=x, y=y, mode=mode)
+            db.session.add(log)
+            db.session.commit()
+    except Exception as e:
+        print(f"DB Error: {e}")
 
 def draw_keyboard(img):
     h, w, _ = img.shape
@@ -108,14 +148,20 @@ def get_finger_points(hand_landmarks):
     return points
 
 def move_mouse_safe(point):
+    if HEADLESS or not pyautogui: return
     with pyautogui_lock:
         x_ratio = screen_w / frame_w
         y_ratio = screen_h / frame_h
-        pyautogui.moveTo(int(point[0] * x_ratio), int(point[1] * y_ratio))
+        try:
+            pyautogui.moveTo(int(point[0] * x_ratio), int(point[1] * y_ratio))
+        except: pass
 
 def press_key_safe(key):
+    if HEADLESS or not pyautogui: return
     with pyautogui_lock:
-        pyautogui.press(key.lower())
+        try:
+            pyautogui.press(key.lower())
+        except: pass
 
 def check_click(landmarks):
     thumb = landmarks[4]
@@ -129,19 +175,32 @@ def check_click(landmarks):
 def generate_frames():
     global mode, running, typed_text
     while running:
-        ok, frame = cap.read()
-        if not ok:
-            time.sleep(0.03)
-            continue
+        frame = None
+        ok = False
+        
+        if cap:
+            ok, frame = cap.read()
+        
+        if not ok or frame is None:
+            # Generate a placeholder "No Camera" frame
+            frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            cv2.putText(frame, "NO CAMERA / HEADLESS MODE", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            # Sleep to prevent tight loop in headless
+            time.sleep(0.1)
 
-        frame = cv2.flip(frame, 1)
+        if ok:
+             frame = cv2.flip(frame, 1)
+        
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(rgb)
+        
+        results = None
+        if hands:
+            results = hands.process(rgb)
 
         if mode == "keyboard":
             draw_keyboard(frame)
-
-        if results.multi_hand_landmarks:
+            
+        if results and results.multi_hand_landmarks:
             for handLms, handType in zip(results.multi_hand_landmarks, results.multi_handedness):
                 label = handType.classification[0].label
                 points = get_finger_points(handLms)

@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Gesture Mouse & Keyboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+      // Configuration: Backend URL
+      // When deployed, this should be updated to the Render URL.
+      // If you are testing locally, http://localhost:5050 is fine.
+      window.BACKEND_URL = "http://localhost:5050"; 
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Gesture Control</h1>
+    <nav>
+      <!-- We can't really view logs nicely without a frontend route or just linking to backend.
+           Linking to backend for now. -->
+      <a href="#" onclick="window.location.href = window.BACKEND_URL + '/logs'" class="btn">View Logs</a>
+      <a href="#" onclick="fetch(window.BACKEND_URL + '/quit')" class="btn danger">Quit</a>
+    </nav>
+  </header>
+
+  <section class="controls">
+    <div class="mode">
+      <span>Current mode:</span>
+      <strong id="modeLabel">mouse</strong>
+    </div>
+    <div class="buttons">
+      <button class="btn" data-mode="mouse">Mouse Mode</button>
+      <button class="btn" data-mode="keyboard">Keyboard Mode</button>
+    </div>
+    <div class="hint">
+      <p><b>Mouse:</b> Move cursor with <i>Left</i> hand index; pinch thumb–pinky to click.</p>
+      <p><b>Keyboard:</b> Select keys with <i>Right</i> hand index finger.</p>
+    </div>
+  </section>
+
+  <section class="video">
+    <!-- MJPEG stream from backend -->
+    <img id="videoStream" alt="Connecting to video stream...">
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
