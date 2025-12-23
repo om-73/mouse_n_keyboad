@@ -6,7 +6,7 @@ import sys
 # CONFIGURATION
 # --------------------------
 # PASTE YOUR RENDER URL HERE (Ensure it starts with https://)
-BACKEND_URL = "https://your-app-name-here.onrender.com" 
+BACKEND_URL = "https://mouse-n-keyboad-1.onrender.com" 
 # --------------------------
 
 def main():
