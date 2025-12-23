@@ -1,7 +1,7 @@
 import {
   HandLandmarker,
   FilesetResolver
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.js";
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 
 const video = document.getElementById("webcam");
 const canvasElement = document.getElementById("output_canvas");
@@ -11,6 +11,8 @@ const modeLabel = document.getElementById("modeLabel");
 const buttons = document.querySelectorAll(".buttons .btn[data-mode]");
 
 // API Configuration
+// CRITICAL: Update this to your HTTPS Render URL for production!
+// e.g., "https://my-app.onrender.com"
 const API_BASE = window.BACKEND_URL || "http://localhost:5050";
 
 let handLandmarker = undefined;
