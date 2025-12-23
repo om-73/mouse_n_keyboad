@@ -110,7 +110,10 @@ function processGestures(landmarks) {
   const thumbTip = landmarks[4];
   const middleTip = landmarks[12];
 
-  const x = indexTip.x * canvasElement.width;
+  // FLIP X to match the mirrored video ("Selfie View")
+  // If video is scaleX(-1), then x=0 (left) is visually Right.
+  // We want logic to match visual.
+  const x = (1 - indexTip.x) * canvasElement.width;
   const y = indexTip.y * canvasElement.height;
 
   if (mode === 'mouse') {
@@ -154,6 +157,7 @@ function processGestures(landmarks) {
   } else if (mode === 'keyboard') {
     // --- Virtual Keyboard Logic ---
     // Simple hit test against drawn keys
+    // Because we flipped 'x' above, it should match the logic keys drawn on canvas
     checkKeyboardHit(x, y);
   }
 }
