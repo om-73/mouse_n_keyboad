@@ -1,16 +1,18 @@
 <!doctype html>
 <html>
+
 <head>
   <meta charset="utf-8" />
   <title>Gesture Mouse & Keyboard</title>
   <link rel="stylesheet" href="style.css">
   <script>
-      // Configuration: Backend URL
-      // When deployed, this should be updated to the Render URL.
-      // If you are testing locally, http://localhost:5050 is fine.
-      window.BACKEND_URL = "http://localhost:5050"; 
+    // Configuration: Backend URL
+    // When deployed, this should be updated to the Render URL.
+    // If you are testing locally, http://localhost:5050 is fine.
+    window.BACKEND_URL = "http://localhost:5050"; 
   </script>
 </head>
+
 <body>
   <header>
     <h1>Gesture Control</h1>
@@ -38,10 +40,23 @@
   </section>
 
   <section class="video">
-    <!-- MJPEG stream from backend -->
-    <img id="videoStream" alt="Connecting to video stream...">
+    <div style="position: relative; width: 640px; height: 480px; margin: 0 auto;">
+      <!-- Local Webcam Video -->
+      <video id="webcam" style="position: absolute; width: 640px; height: 480px; transform: scaleX(-1);" autoplay
+        playsinline></video>
+      <!-- Canvas for drawing landmarks -->
+      <canvas id="output_canvas" width="640" height="480"
+        style="position: absolute; left: 0; top: 0; pointer-events: none; transform: scaleX(-1);"></canvas>
+      <!-- Virtual Mouse Cursor -->
+      <div id="virtual-cursor"
+        style="position: absolute; width: 20px; height: 20px; background: red; border-radius: 50%; pointer-events: none; display: none; z-index: 100;">
+      </div>
+    </div>
   </section>
 
-  <script src="script.js"></script>
+  <!-- MediaPipe Tasks Vision -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
+  <script type="module" src="script.js"></script>
 </body>
+
 </html>
