@@ -158,13 +158,20 @@ function processGestures(landmarks) {
 async function logGesture(text, x, y, mode) {
   // Debounce or limit logging
   try {
-    await fetch(API_BASE + "/api/logs", { // We need to create/use a POST endpoint, but currently only GET exists?
-      // Actually app.py doesn't have a POST log endpoint exposed publicly besides internal function.
-      // We should add one if we want to save logs from frontend.
-      // For now, let's just log to console to not break.
+    await fetch(API_BASE + "/api/logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: text,
+        x: x | 0,
+        y: y | 0,
+        mode: mode
+      })
     });
     console.log(`Logged: ${text} at ${x | 0},${y | 0}`);
-  } catch (e) { }
+  } catch (e) {
+    console.error("Error logging gesture:", e);
+  }
 }
 
 // --- Keyboard Drawing & Logic (Simplified) ---
