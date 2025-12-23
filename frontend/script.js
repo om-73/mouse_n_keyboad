@@ -221,12 +221,40 @@ function processGestures(landmarks) {
     if (dist < 0.08) { // Relaxed threshold slightly
       cursor.style.backgroundColor = "blue";
       logGesture("Click", x, y, "mouse");
+      sendCursorData(x, y, true); // Send CLICK
     } else {
       cursor.style.backgroundColor = "red";
+      sendCursorData(x, y, false); // Send MOVE
     }
 
   } else if (mode === 'keyboard') {
     checkKeyboardHit(x, y);
+  }
+}
+
+// Throttle cursor updates to avoid overwhelming server
+let lastCursorSend = 0;
+async function sendCursorData(x, y, isClick) {
+  const now = performance.now();
+  if (!isClick && (now - lastCursorSend < 50)) return; // Max ~20 updates/sec for moves
+  lastCursorSend = now;
+
+  // Send normalized coordinates (0.0 to 1.0) for better scaling on PC
+  const normX = x / canvasElement.width;
+  const normY = y / canvasElement.height;
+
+  try {
+    await fetch(API_BASE + "/api/cursor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        x: normX,
+        y: normY,
+        click: isClick
+      })
+    });
+  } catch (e) {
+    // console.error(e); 
   }
 }
 

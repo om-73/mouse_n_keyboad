@@ -72,6 +72,36 @@ def create_log():
     db.session.commit()
     return jsonify({"status": "created"}), 201
 
+# -------------------------
+# Remote Cursor State (In-Memory)
+# -------------------------
+cursor_state = {
+    "x": 0, 
+    "y": 0, 
+    "click": False,
+    "last_updated": datetime.utcnow()
+}
+
+@app.route("/api/cursor", methods=["GET", "POST"])
+def cursor_api():
+    global cursor_state
+    if request.method == "POST":
+        data = request.json
+        if data:
+            cursor_state["x"] = data.get("x", cursor_state["x"])
+            cursor_state["y"] = data.get("y", cursor_state["y"])
+            if data.get("click"):
+                cursor_state["click"] = True
+            cursor_state["last_updated"] = datetime.utcnow()
+        return jsonify({"status": "updated"}), 200
+    
+    else: # GET
+        # reading state (for local script)
+        # We return the state and reset 'click' to False so it triggers only once
+        resp = cursor_state.copy()
+        cursor_state["click"] = False 
+        return jsonify(resp), 200
+
 @app.route("/delete/<int:log_id>", methods=["POST"])
 def delete_log(log_id):
     log = GestureLog.query.get(log_id)
