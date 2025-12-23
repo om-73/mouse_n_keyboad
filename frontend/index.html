@@ -8,8 +8,10 @@
   <script>
     // Configuration: Backend URL
     // When deployed, this should be updated to the Render URL.
-    // If you are testing locally, http://localhost:5050 is fine.
-    window.BACKEND_URL = "http://localhost:5050"; 
+    window.BACKEND_URL = "http://localhost:5050";
+
+    // Save to localStorage for other pages (logs.html) to use
+    localStorage.setItem("BACKEND_URL", window.BACKEND_URL);
   </script>
 </head>
 
@@ -19,7 +21,7 @@
     <nav>
       <!-- We can't really view logs nicely without a frontend route or just linking to backend.
            Linking to backend for now. -->
-      <a href="#" onclick="window.location.href = window.BACKEND_URL + '/logs'" class="btn">View Logs</a>
+      <a href="logs.html" class="btn">View Logs</a>
       <a href="#" onclick="fetch(window.BACKEND_URL + '/quit')" class="btn danger">Quit</a>
     </nav>
   </header>

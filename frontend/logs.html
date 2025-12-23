@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Gesture Logs</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Configuration: Backend URL
+        // This will be read from the same config window object if we shared it, 
+        // or we can just redefine it or load from a config file.
+        // For simplicity, let's redefine or check local storage if we had it.
+        // Ideally this should match index.html
+        window.BACKEND_URL = "http://localhost:5050"; 
+    </script>
+</head>
+
+<body>
+    <header>
+        <h1>Gesture Logs</h1>
+        <nav>
+            <a href="index.html" class="btn">Back</a>
+            <button class="btn danger" onclick="deleteAllLogs()">Delete All</button>
+        </nav>
+    </header>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Text</th>
+                <th>X</th>
+                <th>Y</th>
+                <th>Mode</th>
+                <th>Timestamp</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody id="logs-body">
+            <!-- Logs will be inserted here -->
+        </tbody>
+    </table>
+
+    <p id="no-logs" style="text-align:center; display:none;">No logs yet or loading...</p>
+
+    <script>
+        const API_BASE = window.BACKEND_URL;
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch(API_BASE + "/api/logs");
+                const logs = await res.json();
+                renderLogs(logs);
+            } catch (e) {
+                console.error(e);
+                alert("Failed to load logs. Is the backend running?");
+            }
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById("logs-body");
+            const noLogs = document.getElementById("no-logs");
+            tbody.innerHTML = "";
+
+            if (!logs || logs.length === 0) {
+                noLogs.style.display = "block";
+                return;
+            }
+            noLogs.style.display = "none";
+
+            logs.forEach(l => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                <td>${l.id}</td>
+                <td>${l.text || ''}</td>
+                <td>${l.x || ''}</td>
+                <td>${l.y || ''}</td>
+                <td>${l.mode}</td>
+                <td>${new Date(l.timestamp).toLocaleString()}</td>
+                <td>
+                    <button class="btn danger" onclick="deleteLog(${l.id})">Delete</button>
+                </td>
+            `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function deleteLog(id) {
+            if (!confirm("Delete this log?")) return;
+            await fetch(API_BASE + "/delete/" + id, { method: "POST" });
+            fetchLogs();
+        }
+
+        async function deleteAllLogs() {
+            if (!confirm("Delete ALL logs?")) return;
+            await fetch(API_BASE + "/delete_all", { method: "POST" });
+            fetchLogs();
+        }
+
+        // Load logs on page load
+        fetchLogs();
+    </script>
+</body>
+
+</html>
